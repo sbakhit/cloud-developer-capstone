@@ -79,7 +79,7 @@ export class TweetAttachmentService {
       signatureVersion: 'v4'
     }),
     private readonly bucketName = process.env.TWEET_S3_BUCKET,
-    private readonly urlExpiration = process.env.SIGNED_URL_EXPIRATION
+    private readonly urlExpiration = parseInt(process.env.SIGNED_URL_EXPIRATION)
   ) { }
 
   getUploadUrl(tweetId: string): string {
@@ -88,5 +88,12 @@ export class TweetAttachmentService {
       Key: tweetId,
       Expires: this.urlExpiration
     })
+  }
+
+  async deleteAttachment(tweetId: string) {
+    await this.s3.deleteObject({
+      Bucket: this.bucketName,
+      Key: tweetId
+    }).promise()
   }
 }
