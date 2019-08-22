@@ -1,7 +1,7 @@
 {
-  "name": "cloud-developer-capstone",
+  "name": "mini-twitter",
   "version": "1.0.0",
-  "description": "Serverless capstone app",
+  "description": "Serverless Mini-Twitter app",
   "dependencies": {
     "aws-xray-sdk": "^2.2.0",
     "jsonwebtoken": "^8.5.1",
