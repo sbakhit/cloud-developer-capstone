@@ -17,101 +17,83 @@ provider:
   region: ${opt:region, 'ca-central-1'}
 
   environment:
-    TODOS_TABLE: Todos-sbakhit-${self:provider.stage}
-    INDEX_NAME: TodoIdIndex
-    TODO_S3_BUCKET: serverless-bakhit-todo-attachments-${self:provider.stage}
+    TWEETS_TABLE: Tweets-sbakhit-${self:provider.stage}
+    TWEET_INDEX: TweetIdIndex
+    TWEET_S3_BUCKET: serverless-bakhit-tweet-attachments-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
-  GetTodos:
-    handler: src/lambda/http/getTodos.handler
+  GetTweets:
+    handler: src/lambda/http/getTweets.handler
     events:
       - http:
           method: get
-          path: todos
+          path: tweets
           cors: true
           authorizer: Auth
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}
 
-  CreateTodo:
-    handler: src/lambda/http/createTodo.handler
+  CreateTweet:
+    handler: src/lambda/http/createTweet.handler
     events:
       - http:
           method: post
-          path: todos
+          path: tweets
           cors: true
           authorizer: Auth
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}
 
-  UpdateTodo:
-    handler: src/lambda/http/updateTodo.handler
-    events:
-      - http:
-          method: patch
-          path: todos/{todoId}
-          cors: true
-          authorizer: Auth
-    iamRoleStatements:
-      - Effect: Allow
-        Action:
-          - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: Allow
-        Action:
-          - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.INDEX_NAME}
-
-  DeleteTodo:
-    handler: src/lambda/http/deleteTodo.handler
+  DeleteTweet:
+    handler: src/lambda/http/deleteTweet.handler
     events:
       - http:
           method: delete
-          path: todos/{todoId}
+          path: tweets/{tweetId}
           cors: true
           authorizer: Auth
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.INDEX_NAME}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}/index/${self:provider.environment.TWEET_INDEX}
 
   GenerateUrl:
     handler: src/lambda/http/generateUrl.handler
     events:
       - http:
           method: post
-          path: todos/{todoId}/attachment
+          path: tweets/{tweetId}/attachment
           cors: true
           authorizer: Auth
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.INDEX_NAME}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TWEETS_TABLE}/index/${self:provider.environment.TWEET_INDEX}
       - Effect: Allow
         Action:
           - s3:PutObject
           - s3:GetObject
-        Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
+        Resource: arn:aws:s3:::${self:provider.environment.TWEET_S3_BUCKET}/*
 
 resources:
   Resources:
@@ -126,7 +108,7 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
 
-    TodosDynamoDBTable:
+    TweetsDynamoDBTable:
       Type: "AWS::DynamoDB::Table"
       Properties:
         AttributeDefinitions:
@@ -134,7 +116,7 @@ resources:
             AttributeType: S
           - AttributeName: createdAt
             AttributeType: S
-          - AttributeName: todoId
+          - AttributeName: tweetId
             AttributeType: S
         KeySchema:
           - AttributeName: userId
@@ -142,19 +124,19 @@ resources:
           - AttributeName: createdAt
             KeyType: RANGE
         GlobalSecondaryIndexes:
-          - IndexName: ${self:provider.environment.INDEX_NAME}
+          - IndexName: ${self:provider.environment.TWEET_INDEX}
             KeySchema:
-            - AttributeName: todoId
+            - AttributeName: tweetId
               KeyType: HASH
             Projection:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TODOS_TABLE}
+        TableName: ${self:provider.environment.TWEETS_TABLE}
 
     AttachmentsBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: ${self:provider.environment.TODO_S3_BUCKET}
+        BucketName: ${self:provider.environment.TWEET_S3_BUCKET}
         CorsConfiguration:
           CorsRules:
             -
@@ -181,5 +163,5 @@ resources:
               Effect: Allow
               Principal: '*'
               Action: 's3:GetObject'
-              Resource: 'arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*'
+              Resource: 'arn:aws:s3:::${self:provider.environment.TWEET_S3_BUCKET}/*'
         Bucket: !Ref AttachmentsBucket
